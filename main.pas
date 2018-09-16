@@ -38,7 +38,7 @@ type
     procedure rotateXYZ;
     procedure translatePiece(pc: Piece; x, y, z: Integer);
     procedure moveToOrigin;
-    function print: String;
+    function toString: String;
     function maxCoord: Point;
   end;
 
@@ -53,21 +53,20 @@ type
   end;
 
 const
-  NX = 22; // dimensions of the box
-  NY = 35;
-  NZ = 1;
+  NX = 3; // dimensions of the box
+  NY = 7;
+  NZ = 7;
   N_BIG = (NX * NY * NZ - 1) div 64 + 1;
 
-  N_P = 2; // number of used pieces
+  N_P = 2; // number of used pieces (1..8)
 
+  // the coordiantes of up to 8 pieces
   // y-pentomino
-  // p0: Array [0 .. 4] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
-  // y: 0; z: 0), (x: 3; y: 0; z: 0), (x: 2; y: 1; z: 0));
-
   p0: Array [0 .. 4] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
-    y: 0; z: 0), (x: 2; y: 1; z: 0), (x: 0; y: 1; z: 0));
-  p1: Array [0 .. 4] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
-    y: 0; z: 0), (x: 1; y: 1; z: 0), (x: 1; y: 2; z: 0));
+    y: 0; z: 0), (x: 3; y: 0; z: 0), (x: 1; y: 1; z: 0));
+  p1: Array [0 .. 7] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
+    y: 0; z: 0), (x: 2; y: 1; z: 0), (x: 2; y: 2; z: 0), (x: 1; y: 2; z: 0),
+    (x: 0; y: 2; z: 0), (x: 0; y: 1; z: 0));
 
   // p1: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
   p2: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
@@ -77,15 +76,18 @@ const
   p6: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
   p7: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
 
-  multi: Array [0 .. 7] of Boolean = (true, true, true, false, false, false,
-    false, true);
+  // set true if piece may be used several times. SAT approach does not scale
+  // good if pieces are allowed <=1 times (multi=false);
+  multi: Array [0 .. 7] of Boolean = (true, true, true, true, true, true,
+    true, true);
 
 var
   Form1: TForm1;
-  piecePos: Array of Piece;
-  // stores all possible positions of all pieces
+  piecePos: Array of Piece; // stores all possible positions of all pieces
+
   pieceHash, pieceHashRep: Array of BigInteger;
   // for the hashes of the piecePos
+
   piecePosIdxOfPoint: array of array of UInt16;
   piecePosIdxOfPointMx: array of Int16;
   varName: Array of Array of Integer;
@@ -111,6 +113,7 @@ begin
     d[i] := 0;
 end;
 
+//CHeck if two BigInteger have at least one common bits
 function BigInteger.disjunctQ(b: BigInteger): Boolean;
 var
   i: Integer;
@@ -207,7 +210,7 @@ begin
   end;
 end;
 
-function Piece.print: String;
+function Piece.toString: String;
 var
   s: String;
   pt: Point;
@@ -322,7 +325,6 @@ begin
       if piecePos[pidx1].multi = true then
         Exit(false);
   end;
-
   // else collision
   result := true;
 end;
@@ -388,7 +390,7 @@ begin
           begin
             used[varnameToPiecePosIdx[n]] := true;
 
-            Memo1.Lines.Add(piecePos[varnameToPiecePosIdx[n]].print + ',');
+            Memo1.Lines.Add(piecePos[varnameToPiecePosIdx[n]].toString + ',');
           end;
           negated := negated + '-' + IntToStr(n) + ' ';
         end;
@@ -426,7 +428,7 @@ var
 
 begin
   SetLength(pc, 8);
-  // up to 8 different puccle pieces
+  // up to 8 different puzzle pieces
   SetLength(pDyn, Length(p0));
   Move(p0[Low(p0)], pDyn[0], SizeOf(p0));
   pc[0] := Piece.Create(pDyn, multi[0], 0);
@@ -481,15 +483,19 @@ begin
     idx := 0;
     for i := 0 to 23 do
       pieceHashRep[i] := BigInteger.Create(N_BIG);
-    for s1 := 0 to 3 do
+    for s1 := 0 to 2 do
     begin
-      pc[n].rotateX4;
+      pc[n].rotateXYZ;
       for s2 := 0 to 1 do
       begin
         pc[n].rotateZ2;
-        for s3 := 0 to 2 do
+        for s3 := 0 to 3 do
         begin
-          pc[n].rotateXYZ;
+          pc[n].rotateX4;
+          mx := pc[n].maxCoord;
+          if (mx.x >= NX) or (mx.y >= NY) or (mx.z >= NZ) then
+            continue; // piece does not fit into the box
+
           setPiecePosHash(pc[n], pieceHashRep[idx]);
           Inc(idx);
           doublette := false; // prevent doubles for symmetric pieces
