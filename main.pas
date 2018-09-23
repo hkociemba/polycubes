@@ -53,22 +53,22 @@ type
   end;
 
 const
-  NX = 3; // dimensions of the box
-  NY = 7;
-  NZ = 7;
-  N_BIG = (NX * NY * NZ - 1) div 64 + 1;
+  // ********program coded constants, need to be set  before compiling *******
 
+  NX = 5; // dimensions of the box
+  NY = 5;
+  NZ = 5;
   N_P = 2; // number of used pieces (1..8)
 
-  // the coordiantes of up to 8 pieces
-  // y-pentomino
-  p0: Array [0 .. 4] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
-    y: 0; z: 0), (x: 3; y: 0; z: 0), (x: 1; y: 1; z: 0));
-  p1: Array [0 .. 7] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
-    y: 0; z: 0), (x: 2; y: 1; z: 0), (x: 2; y: 2; z: 0), (x: 1; y: 2; z: 0),
-    (x: 0; y: 2; z: 0), (x: 0; y: 1; z: 0));
+  // the coordinates of up to 8 pieces, here example with two pieces
+  //X-Pentomino
+  p0: Array [0 .. 4] of Point = ((x: 1; y: 0; z: 0), (x: 0; y: 1; z: 0), (x: 1;
+    y: 1; z: 0), (x: 2; y: 1; z: 0), (x: 1; y: 2; z: 0));
+  //K-Pentacube
+  p1: Array [0 .. 4] of Point = ((x: 0; y: 0; z: 0), (x: 1; y: 0; z: 0), (x: 2;
+    y: 0; z: 0), (x: 0; y: 0; z: 1), (x: 0; y: 1; z: 0));
 
-  // p1: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
+  // not used in this example
   p2: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
   p3: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
   p4: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
@@ -76,17 +76,19 @@ const
   p6: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
   p7: Array [0 .. 0] of Point = ((x: 0; y: 0; z: 0));
 
-  // set true if piece may be used several times. SAT approach does not scale
-  // good if pieces are allowed <=1 times (multi=false);
+  // set true if piece is allowed to be used several times. SAT approach does
+  // not scale well if set to false.
   multi: Array [0 .. 7] of Boolean = (true, true, true, true, true, true,
     true, true);
+  // **********************end program coded constants **************************
+
+  N_BIG = (NX * NY * NZ - 1) div 64 + 1;
 
 var
   Form1: TForm1;
   piecePos: Array of Piece; // stores all possible positions of all pieces
 
-  pieceHash, pieceHashRep: Array of BigInteger;
-  // for the hashes of the piecePos
+  pieceHash, pieceHashRep: Array of BigInteger; // for the hashes of  piecePos
 
   piecePosIdxOfPoint: array of array of UInt16;
   piecePosIdxOfPointMx: array of Int16;
@@ -113,7 +115,7 @@ begin
     d[i] := 0;
 end;
 
-//CHeck if two BigInteger have at least one common bits
+// CHeck if two BigInteger have at least one common bits
 function BigInteger.disjunctQ(b: BigInteger): Boolean;
 var
   i: Integer;
@@ -409,9 +411,8 @@ begin
       IntToStr(n_clauses);
     clauses.SaveToFile('cnf.txt');
     Inc(cnt);
-    if cnt mod 1 = 0 then
-      Memo1.Lines.SaveToFile('solutions.txt');
-
+    Memo1.Lines.SaveToFile('solutions.txt'); // update solution file
+    //the output can be viewed with the provided Mathematica file
   until true;
 end;
 
@@ -428,7 +429,6 @@ var
 
 begin
   SetLength(pc, 8);
-  // up to 8 different puzzle pieces
   SetLength(pDyn, Length(p0));
   Move(p0[Low(p0)], pDyn[0], SizeOf(p0));
   pc[0] := Piece.Create(pDyn, multi[0], 0);
